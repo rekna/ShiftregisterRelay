@@ -1,5 +1,4 @@
 /*
- * Harry-SR-Relais.c
  *
  * Created: 26.03.2017 17:25:52
  * Author : Reiner
@@ -13,8 +12,8 @@
 #include <util/delay.h>
 #include <relais.h>
 
-uint32_t timestamp=0;		// Zeitstempel für Verzögerung
-uint8_t relIndex=0;			// Relais durchzählen
+uint32_t timestamp=0;		// Zeitstempel fÃ¼r VerzÃ¶gerung
+uint8_t relIndex=0;			// Relais durchzÃ¤hlen
 
 bool toggle=false;
 
