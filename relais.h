@@ -21,42 +21,42 @@
 #define SR_PIN_DO	(1<<3)
 #define SR_PIN_STO	(1<<2)
 
-// Vorüberlegungen
+// Prerequesitions
 //
-// Verwendetes Relais: SONGLE SRD-05VDC-SL-C
+// Tested Relay: SONGLE SRD-05VDC-SL-C
 //
-// Einschaltzeit (Datenblatt): max. 10ms => Änderung Relais Zustand erfordert Stromburst von 10ms Dauer => Verwende 50% Sicherheitsaufschlag => 15ms
-// Ausschaltzeit (Datenblatt): max. 5ms
+// Turn On Time (datasheet)	: max. 10ms => Change at relay state requires boost of 10ms => Use 150% to be sure => 15ms
+// Turn Off Time (datasheet): max. 5ms
 //
-// Experimentell ermittelte Zeiten
-// Einschaltzeit Relais									ca. 5,4 ms
-// Ausschaltzeit Relais									ca. 4,8 ms
-// Erlaubte Pausen Zeit ohne Rücksetzen Relais:			ca. 2ms (Maximalwert)
-// benötigte Zeit Ansteuerung Relais für Refresh:		ca. 1ms (Minimalwert) => Erhaltungsverhältnis von 2:1 (on:off)
+// Measured experimental times
+// Turn On Time Relay									ca. 5,4 ms
+// Turn Off Time Relay									ca. 4,8 ms
+// Allowed pause time without relay reset:				ca. 2ms (max value)
+// Needed refresh time to keep relay alive:				ca. 1ms (min value) => Refresh Ratio is 1:2 (on:off)
 //
-// Dauer für Schieberegister Ausgabe					ca. 4 us
-// Dauer ISR gesamt (ca. 175 Takte)						ca. 11 us => 1,1% (16MHz) uC Zeit
+// Time for Shiftregister Load							ca. 4 us
+// Time ISR total (ca. 175 clocks)						ca. 11 us => 1,1% (16MHz) uC time use
 //
-// Takt für Schieberegister setzen => 1ms (entspricht Timer IRQ)
+// ISR will be called every 1ms (time measurement + SR load)
 //
 
-// Maskendefinition für 8 Bit Maske
+// Mask definition for 8 bit mask
 //
-// Erhalten Relais Zustände: 2 Bit an / 1 Bit aus (Extrem Zustand)		=> B00100101 = 0x25 (ca. 12 mA / Relais) (entspricht oben gemessenen maximalen Timingwerten für Erhalt; evtl. bleibt Relais nicht sicher an)
-// Erhalten Relais Zustande: 1 Bit an / 1 Bit aus (sichere Versorgung)	=> B10101010 = 0xAA (ca. 20 mA / Relais)
+// Sustain relay state: 2 bits on / 1 bit off (extrem condition)		=> B00100101 = 0x25 (ca. 12 mA / relay) (reflects to measured timings above for refresh; single relays might not switch state)
+// Sustain relay state: 1 Bit on / 1 Bit off (save condition)			=> B10101010 = 0xAA (ca. 20 mA / relay)
 
-// Maskendefinition für 16 bit Maske (ermöglichst feinere 
+// Mask definition for 16 bit mask (provides more granular timing)
 //
-// Erhalten Relais Zustände: 6 Bit an / 10 Bit aus (Extrem Zustand)		=> B0100101001010010 = 0x2495 (ca. 12 mA / Relais) (entspricht oben gemessenen maximalen Timingwerten für Erhalt; evtl. bleibt Relais nicht sicher an)
-// Erhalten Relais Zustände: 7 Bit an / 9 Bit aus (Grenz Zustand)		=> B0010101001010101 = 0x2A55 (ca. 16 mA / Relais) (knapp Unterhalt der oben gemessenen Timingwerten für Erhalt; Test mit allen Relais hat funktioniert)
-// Erhalten Relais Zustande: 8 Bit an / 8 Bit aus (sichere Versorgung)	=> B1010101010101010 = 0xAAAA (ca. 20 mA / Relais)
+// Sustain relay state: 6 bits on / 10 bits off (extrem condition)		=> B0100101001010010 = 0x2495 (ca. 12 mA / relay) (reflects to measured timings above for refresh; single relays might not switch state)
+// Sustain relay state: 7 bits on / 9 bits off (working condition)		=> B0010101001010101 = 0x2A55 (ca. 16 mA / relay) (power a little bit more than measured above; worked for my test)
+// Sustain relay state: 8 bits on / 8 bits off (save condition)			=> B1010101010101010 = 0xAAAA (ca. 20 mA / relay)
 
-// Steuerdefinitionen für Relaisansteuerung
-#define SR_RELAIS_BURST_CYCLES	15					// Vollansteuerung Relais in ms (s.o.)
-#define SR_RELAIS_SUSTAIN_MASK	0x2A55				// Bitmaske für getaktete Relaisansteuerung
+// Relay control definition
+#define SR_RELAIS_BURST_CYCLES	15					// Burst drive for relays in ms
+#define SR_RELAIS_SUSTAIN_MASK	0x2A55				// bit mask for pulsed relay control
 #define SR_RELAIS_CYCLE_TIME	1000				// 1 ms cycle time
 
-// Funktionsdeklarationen
+// Function deklarationen
 
 void initTimer();
 uint32_t millis();

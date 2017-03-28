@@ -12,10 +12,10 @@
 #include <util/delay.h>
 #include <relais.h>
 
-uint32_t timestamp=0;		// Zeitstempel für Verzögerung
-uint8_t relIndex=0;			// Relais durchzählen
+uint32_t timestamp=0;		// time stamp variable
+uint8_t relIndex=0;			// relay state
 
-bool toggle=false;
+bool toggle=false;			// relay on/off flag
 
 int main(void)
 {
@@ -30,10 +30,12 @@ int main(void)
     {
 		if ((millis()-timestamp)>5000) {
 			timestamp=millis();
-			// Relais alle x Sekunden aus / ein schalten
+			// switch relay every x sec on/off
 			if (toggle) {
 				relaySet(0);
 			} else {
+				// true = switch single relay one after the other
+				// false = switch relays binary
 				if (true) {
 					relaySet(relIndex);
 					relIndex=relIndex<<1;

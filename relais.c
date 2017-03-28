@@ -7,27 +7,27 @@
 
 #include <relais.h>
 
-// Variablen Relaissteuerung
-volatile uint16_t maskS=SR_RELAIS_SUSTAIN_MASK;				// Maske für Relaiserhaltung
-volatile uint8_t maskChangeSteps=0;							// Zaehler für Burstdauer
-volatile uint8_t srPattern=0;								// Speicher für Relaisausgänge
+// Variables relay control
+volatile uint16_t maskS=SR_RELAIS_SUSTAIN_MASK;				// maske for relay refresh
+volatile uint8_t maskChangeSteps=0;							// counter burst drive
+volatile uint8_t srPattern=0;								// relay control bits
 
-// Zeit Funktionen
-volatile uint32_t _timerMillis;								// Vergangene Millisekunden
-volatile uint32_t _timerMicros;								// Vergangene Mikrosekunden
-uint32_t srRefreshTimestamp;								// Letzte manuelle Aktualisierung Schieberegister
+// time control
+volatile uint32_t _timerMillis;								// passed milli seconds
+volatile uint32_t _timerMicros;								// passed micro seconds
+uint32_t srRefreshTimestamp;								// last manual SR refresh
 
 //
-// Timer Routinen
+// timer routines
 //
 
-// Timer einrichten
+// timer setup
 void initTimer () {
-	// Timer 0 Ausführung alle 1 ms
+	// Timer 0 execution every 1 ms
 	// F_CPU = 16000000
 	// Prescaler 64
 	// Ticks=16000000/64 = 250000
-	// 1 IRQ = 1 MS => 250000/1000 => 250 CTC Grenze (16 MHz); 125 CTC Grenze (8 MHz)
+	// 1 IRQ = 1 MS => 250000/1000 => 250 CTC Border (16 MHz); 125 CTC Border (8 MHz)
 
 #ifdef F_CPU=16000000
 	OCR0A=250;
@@ -35,87 +35,87 @@ void initTimer () {
 #ifdef F_CPU=8000000
 	OCR0A=125;
 #endif
-	// CTC Mode einschalten (WGM21)
+	// CTC Mode on (WGM21)
 	TCCR0A|=(1<<WGM01);
-	// IRQ Einschalten
+	// IRQ enable
 	TIMSK0|=(1<<OCIE0A);
-	// Prescaler auf 64 (CS22, CS20)
+	// Prescaler to 64 (CS22, CS20)
 	TCCR0B=(1<<CS01)|(1<<CS00);
 
-	// Zähler zurücksetzen
+	// counter init
 	_timerMillis=0;
 	_timerMicros=0;
 
-	// IRQ einschalten	
+	// General IRQ enable
 	sei();
 
 }
 
-// Timer ISR (Aufruf alle 1ms)
+// Timer ISR
 ISR(TIMER0_COMPA_vect) {
-	// bereits anliegende Schieberegsiter Daten latchen
+	// latch preloaded shiftregister data
 	srLatch();
-	// Timerzähler setzen
+	// increase timer counter
 	_timerMillis++;
 	_timerMicros+=1000;
-	// nächste Schieberegister Daten vorloaden, für entspannteres Timing
+	// preload next shiftregister data for timing reasons
 	srPreload(srPattern);
 }
 
-// Aktuelle Millis
+// current millis
 uint32_t millis() {
 	return _timerMillis;
 }
 
-// Aktuelle Micros
+// current micros
 uint32_t micros() {
 #ifdef F_CPU=16000000
-	// Laufende Micros mit 4 Multiplizieren, da nur 250 Ticks gezählt werden
+	// micro counter multiplied by 4, only counted every 250 ticks
 	return _timerMicros+(TCNT2<<2);
 #endif
 #ifdef F_CPU=8000000
-	// Laufende Micros mit 8 Multiplizieren, da nur 125 Ticks gezählt werden
+	// micro counter multiplied by 8, only counted every 125 ticks
 	return _timerMicros+(TCNT2<<4);
 #endif
 }
 
-// Warte x ms
+// wait x ms
 void delay(uint32_t msec) {
 	uint32_t start=millis();
 	while ((millis()-start)<msec) ;
 }
 
-// Warte x us
+// wait x us
 void delayus(uint32_t usec) {
 	uint32_t start=micros();
 	while ((micros()-start)<usec) ;
 }
 
 //
-// Schieberegister Verwaltung
+// shift register management
 //
 
-// Schieberegister init
+// relay control init
 void relayInit () {
-	// SR Init
-	// Portausgabe einstellen
+	// shift register init
+	// Setup port pins
 	SR_DDR|=(SR_PIN_CLK|SR_PIN_DO|SR_PIN_STO);
-	// SR Clock, DataOut, Store auf LOW
+	// shift register clock, dataOut, dtore to LOW
 	SR_PORT&=~(SR_PIN_CLK|SR_PIN_DO|SR_PIN_STO);
-	// Alle Ausgänge aus
+	// All relay output disable
 	relaySet(0);
 	srPreload(srPattern);
 	srLatch();
 }
 
-// Datenbits in Schieberegister laden
+// load data bits to shift register
 void srPreload (uint8_t data) {
-	// Byte maskieren, wenn kein Burst
+	// mask data byte, if not burst mode
 	if (maskChangeSteps==0) {
-		// Ausgabe maskieren
+		// mask data byte
 		data=data&(maskS&0xff);
 	} else {
-		// Burstzähler verringern
+		// descrease burst counter, do not mask output
 		maskChangeSteps-=maskChangeSteps>0?1:0;
 	}
 	for (uint8_t i=0; i<8; i++) {
@@ -131,30 +131,30 @@ void srPreload (uint8_t data) {
 		// Shift Bits
 		data=data>>1;
 	}
-	// Maske rotieren
+	// rotate mask
 	uint8_t msbS=(maskS&0x8000)==0?0:1;
 	maskS=(maskS<<1)|msbS;
 }
 
-// Neues Relaismuster einstellen
+// Save new Relay state
 void relaySet (uint8_t data) {
-	// Liegt Änderung bei einem Relais vor? => Burst Sequenz einstreuen
+	// Is there a change in the relay state? => Init burst sequenz
 	if (data!=srPattern) {
 		maskChangeSteps=SR_RELAIS_BURST_CYCLES;
 	}
-	// Daten abspeichern
+	// Save new relay pattern
 	srPattern=data;
 }
 
-// Anliegende Schieberegisterdaten an Ausgänge latchen
+// latch shift register to outputs
 void srLatch () {
 	SR_PORT&=~SR_PIN_STO;
 	SR_PORT|=SR_PIN_STO;
 }
 
-// Manuelles Refresh des Schieberegisters (für IRQ lose Ausführung)
+// manual refresh of shift register (for IRQ less execution)
 void relayRefresh () {
-	// Zeit für Refresh?
+	// time passed for refresh?
 	if (micros()-srRefreshTimestamp>=SR_RELAIS_CYCLE_TIME) {
 		srRefreshTimestamp=micros();
 		srPreload(srPattern);
