@@ -23,8 +23,8 @@ Turn Off Time Relay									          approx. 4,8 ms
 Allowed pause time without relay reset:				approx. 2ms (max value)
 Needed refresh time to keep relay alive:			approx. 1ms (min value) => This leads to max. refresh Ratio of 1:2 (on:off)
 
-Code Time for Shiftregister Load							approx. 4 us (16MHz AVR)
-Code Time ISR total (around 175 clocks) 			approx. 11 us => 1,1% (16MHz) uC time utilization
+Code Time for Shiftregister Load					approx. 12 us (16MHz AVR)
+Code Time ISR total (around 300 clocks) 			approx. 19 us => 1,9% (16MHz) uC time utilization
 
 ISR will be called every 1ms (time measurement + SR load)
 
