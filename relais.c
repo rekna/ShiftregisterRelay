@@ -30,10 +30,10 @@ void initTimer () {
 	// 1 IRQ = 1 MS => 250000/1000 => 250 CTC Border (16 MHz); 125 CTC Border (8 MHz)
 
 #ifdef F_CPU=16000000
-	OCR0A=250;
+	OCR0A=249;
 #endif
 #ifdef F_CPU=8000000
-	OCR0A=125;
+	OCR0A=124;
 #endif
 	// CTC Mode on (WGM21)
 	TCCR0A|=(1<<WGM01);
