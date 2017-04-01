@@ -34,8 +34,8 @@
 // Allowed pause time without relay reset:				ca. 2ms (max value)
 // Needed refresh time to keep relay alive:				ca. 1ms (min value) => Refresh Ratio is 1:2 (on:off)
 //
-// Time for Shiftregister Load							ca. 4 us
-// Time ISR total (ca. 175 clocks)						ca. 11 us => 1,1% (16MHz) uC time use
+// Time for Shiftregister Load							ca. 12 us (16 MHz)
+// Time ISR total (ca. 300 clocks)					ca. 19 us => 1,9% (16MHz) uC time use
 //
 // ISR will be called every 1ms (time measurement + SR load)
 //
