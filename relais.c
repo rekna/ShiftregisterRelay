@@ -71,7 +71,7 @@ uint32_t millis() {
 uint32_t micros() {
 #ifdef F_CPU=16000000
 	// micro counter multiplied by 4, only counted every 250 ticks
-	return _timerMicros+(TCNT2<<2);
+	return _timerMicros+(TCNT2<<3);
 #endif
 #ifdef F_CPU=8000000
 	// micro counter multiplied by 8, only counted every 125 ticks
